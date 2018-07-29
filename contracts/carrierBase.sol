@@ -18,7 +18,7 @@ contract carrierBase is AccessControl{
     event addedTank(uint _tankId);
     function addCarrieToFleet() public onlyCEO {
 
-    carrier memory carrierInstance = carrier(true);
+    carrier memory carrierInstance = carrier (true);
     uint _id = totalCarrierPool.push(carrierInstance) - 1;
     idToCarrier[_id] = carrierInstance;
     emit addedCarrier(_id);
