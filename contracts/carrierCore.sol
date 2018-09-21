@@ -4,23 +4,31 @@ import "./carrierBase.sol";
 contract carrierCore is carrierBase{
  
  
- event Tankerisfull(uint _tankId);
- event RemovedWater(string serviceReqID,string carrierName,string fieldName,string wellName,string _wellApiNum,uint _carrierId,uint _lat,uint _long,uint _levelFeet,uint _lebelInches);
+ event Tankerisfull(uint _tankId,uint serviceId);
+ event RemovedWater(uint _tankId,uint serviceReqID,string wellName,uint _carrierId);
  event ExtractedOil(uint _carrierId,uint _tankId);
  
- function tankerIsFull (uint _tankId) public { //api to be called based on iot input
+ function tankerIsFull (uint _tankId) public returns(uint) { //api to be called based on iot input
     require(idToTank[_tankId].tankerIsfull == false);
     idToTank[_tankId].tankerIsfull = true;
-    emit Tankerisfull(_tankId);
+    uint serviceId = _createServiceRequest(_tankId);
+    emit Tankerisfull(_tankId,serviceId);  
+    return serviceId;//listen to this event to get new serviceID
  }
  
- function extractWater(uint _tankId,string serviceReqID,string carrierName,string fieldName,string wellName,string _wellApiNum,uint _carrierId,uint _lat,uint _long,uint _levelFeet,uint _lebelInches) public { //called based on Tankerisfull event
+ function extractWater(uint _tankId,uint _serviceReqID,string wellName,uint _carrierId) public returns(bool) { //called based on Tankerisfull event
     require(idToTank[_tankId].tankerIsfull==true);
     require(idToCarrier[_carrierId].isFree==true);
+    _assigngCarrierToRequest(_serviceReqID,_carrierId);
     idToTank[_tankId].waterExtracted = true;
     idToTank[_tankId].tankerIsfull = false ;
-    idToCarrier[_carrierId].isFree==false;    //tanker is engaged now make changes to Database
-    emit RemovedWater(serviceReqID,carrierName,fieldName,wellName,_wellApiNum,_carrierId, _lat,_long,_levelFeet,_lebelInches); //capture servicereqID and put as solved
+    idToCarrier[_carrierId].isFree = false;  
+    bool isExtractiondone =_extractWater(_serviceReqID,_carrierId,_tankId);
+    if(isExtractiondone==true){
+        idToCarrier[_carrierId].isFree==true;  
+    }
+    emit RemovedWater(_tankId,_serviceReqID,wellName,_carrierId); //capture servicereqID and put as solved
+    return isExtractiondone;
  }
  
  function extractCrudeOil(uint _carrierId,uint _tankId) public { //called based on Removedwater event
